@@ -50,38 +50,92 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     private fun buildScreen() {
-        val scroll = ScrollView(this)
-        main = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(22, 24, 22, 28) }
+        val scroll = ScrollView(this).apply { setBackgroundColor(0xFFF3F6FC.toInt()) }
+        main = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(18, 18, 18, 26)
+        }
         scroll.addView(main); setContentView(scroll)
 
-        main.addView(TextView(this).apply {
-            text = "My Downline Manager\nTEAM BANJARAHILLS"
-            textSize = 25f; setTextColor(0xFF17365D.toInt()); setPadding(0,0,0,12)
-        })
-        summary = TextView(this).apply { textSize = 17f; setPadding(0,8,0,12) }
-        main.addView(summary)
-
-        button("📥  Import Phone Contacts") { importContacts() }
-        button("➕  Add Member Manually") { addManual() }
-        button("🔔  Set CNC Reminder (2nd–14th, 9:00 AM)") {
-            ReminderScheduler.scheduleNext(this)
-            Toast.makeText(this, "Monthly CNC reminder is scheduled", Toast.LENGTH_LONG).show()
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(18, 22, 18, 22)
+            background = rounded(0xFF123B70.toInt(), 24)
         }
-        button("🔊  Listen to Telugu Reminder Voice") { speakReminder() }
-        button("📤  Backup / Share Member List") { shareBackup() }
+        val logo = TextView(this).apply {
+            text = "✦"
+            textSize = 34f
+            gravity = Gravity.CENTER
+            setTextColor(0xFFFFFFFF.toInt())
+            background = rounded(0xFF16A085.toInt(), 18)
+        }
+        header.addView(logo, LinearLayout.LayoutParams(62, 62))
+        val brand = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(14,0,0,0) }
+        brand.addView(TextView(this).apply {
+            text = "My Downline Manager"
+            textSize = 21f; setTextColor(0xFFFFFFFF.toInt()); setTypeface(null, android.graphics.Typeface.BOLD)
+        })
+        brand.addView(TextView(this).apply {
+            text = "TEAM BANJARAHILLS"
+            textSize = 12f; setTextColor(0xFFBFE8E2.toInt())
+        })
+        header.addView(brand)
+        main.addView(header, marginParams(-1, -2, 0, 0, 0, 18))
 
-        search = EditText(this).apply { hint = "Search member name or phone"; setSingleLine(true) }
+        summary = TextView(this).apply {
+            textSize = 16f
+            setTextColor(0xFF17365D.toInt())
+            setPadding(18, 18, 18, 18)
+            background = rounded(0xFFFFFFFF.toInt(), 20)
+        }
+        main.addView(summary, marginParams(-1, -2, 0, 0, 0, 16))
+
+        val actionGrid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val row1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        row1.addView(actionButton("📥  Import Contacts", 0xFF167D9A.toInt()) { importContacts() }, weightedParams())
+        row1.addView(actionButton("➕  Add Member", 0xFF2878C8.toInt()) { addManual() }, weightedParams())
+        actionGrid.addView(row1)
+        val row2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        row2.addView(actionButton("🔔  CNC Reminder", 0xFF16866B.toInt()) {
+            ReminderScheduler.scheduleNext(this@MainActivity)
+            Toast.makeText(this@MainActivity, "Monthly CNC reminder is scheduled", Toast.LENGTH_LONG).show()
+        }, weightedParams())
+        row2.addView(actionButton("🔊  Telugu Voice", 0xFF7652B5.toInt()) { speakReminder() }, weightedParams())
+        actionGrid.addView(row2)
+        actionGrid.addView(actionButton("📤  Backup / Share Member List", 0xFF42566F.toInt()) { shareBackup() },
+            LinearLayout.LayoutParams(-1, 54).apply { topMargin = 8 })
+        main.addView(actionGrid, marginParams(-1, -2, 0, 0, 0, 16))
+
+        search = EditText(this).apply {
+            hint = "🔍  Search member name or phone"
+            setSingleLine(true)
+            textSize = 15f
+            setTextColor(0xFF17365D.toInt())
+            setPadding(16, 8, 16, 8)
+            background = rounded(0xFFFFFFFF.toInt(), 16)
+        }
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
             override fun afterTextChanged(s: Editable?) {}
         })
-        main.addView(search)
+        main.addView(search, marginParams(-1, 54, 0, 0, 0, 10))
 
-        val filters = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        val filters = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, 2, 0, 10)
+        }
         listOf("ALL", "PENDING", "DONE").forEach { f ->
-            val b = Button(this).apply { text = f; setOnClickListener { filter = f; refreshList() } }
-            filters.addView(b, LinearLayout.LayoutParams(0, -2, 1f))
+            val b = TextView(this).apply {
+                text = f; textSize = 12f; gravity = Gravity.CENTER
+                setTextColor(if (filter == f) 0xFFFFFFFF.toInt() else 0xFF23415F.toInt())
+                setPadding(8, 12, 8, 12)
+                background = rounded(if (filter == f) 0xFF167D9A.toInt() else 0xFFE2EAF4.toInt(), 14)
+                setOnClickListener { filter = f; buildScreenRefreshFilters(); refreshList() }
+            }
+            filters.addView(b, LinearLayout.LayoutParams(0, 44, 1f).apply { setMargins(4,0,4,0) })
         }
         main.addView(filters)
         listArea = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -89,13 +143,34 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         refreshList()
     }
 
-    private fun button(label: String, action: () -> Unit) {
-        main.addView(Button(this).apply { text = label; setOnClickListener { action() } })
+    private fun buildScreenRefreshFilters() {
+        if (!::main.isInitialized) return
+        // Rebuild the screen so the selected filter receives the active color.
+        buildScreen()
     }
+
+    private fun rounded(color: Int, radius: Int): android.graphics.drawable.GradientDrawable =
+        android.graphics.drawable.GradientDrawable().apply {
+            setColor(color); cornerRadius = radius.toFloat()
+        }
+
+    private fun marginParams(width: Int, height: Int, left: Int, top: Int, right: Int, bottom: Int) =
+        LinearLayout.LayoutParams(width, height).apply { setMargins(left, top, right, bottom) }
+
+    private fun weightedParams() =
+        LinearLayout.LayoutParams(0, 54, 1f).apply { setMargins(4, 4, 4, 4) }
+
+    private fun actionButton(label: String, color: Int, action: () -> Unit): TextView =
+        TextView(this).apply {
+            text = label; textSize = 13f; gravity = Gravity.CENTER
+            setTextColor(0xFFFFFFFF.toInt()); setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(8, 8, 8, 8); background = rounded(color, 16)
+            setOnClickListener { action() }
+        }
 
     private fun refreshList() {
         if (!::listArea.isInitialized) return
-        summary.text = "మొత్తం సభ్యులు: ${members.size}\nCNC పూర్తయింది: ${members.count { it.doneMonth == monthKey }}   పెండింగ్: ${members.count { it.doneMonth != monthKey }}"
+        summary.text = "📊  TEAM DASHBOARD\\nమొత్తం సభ్యులు: ${members.size}\\n✅ CNC పూర్తయింది: ${members.count { it.doneMonth == monthKey }}     ⏳ పెండింగ్: ${members.count { it.doneMonth != monthKey }}"
         listArea.removeAllViews()
         val q = if (::search.isInitialized) search.text.toString().trim().lowercase(Locale.getDefault()) else ""
         val filtered = members.filter {
@@ -107,7 +182,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         }
         filtered.forEach { m ->
             val card = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(10,12,10,12) }
-            card.setBackgroundColor(0xFFF1F5F9.toInt())
+            card.background = rounded(0xFFFFFFFF.toInt(), 18)
             card.addView(TextView(this).apply {
                 text = "${m.name}\n${m.phone}\nCNC: ${if (m.doneMonth == monthKey) "DONE" else "PENDING"}"
                 textSize = 16f
