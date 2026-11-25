@@ -170,7 +170,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
 
     private fun refreshList() {
         if (!::listArea.isInitialized) return
-        summary.text = "📊  TEAM DASHBOARD\\nమొత్తం సభ్యులు: ${members.size}\\n✅ CNC పూర్తయింది: ${members.count { it.doneMonth == monthKey }}     ⏳ పెండింగ్: ${members.count { it.doneMonth != monthKey }}"
+        summary.text = "📊  TEAM DASHBOARD\nమొత్తం సభ్యులు: ${members.size}\n✅ CNC పూర్తయింది: ${members.count { it.doneMonth == monthKey }}\n⏳ పెండింగ్: ${members.count { it.doneMonth != monthKey }}"
         listArea.removeAllViews()
         val q = if (::search.isInitialized) search.text.toString().trim().lowercase(Locale.getDefault()) else ""
         val filtered = members.filter {
