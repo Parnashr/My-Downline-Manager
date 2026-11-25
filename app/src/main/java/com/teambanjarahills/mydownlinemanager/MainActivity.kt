@@ -29,6 +29,8 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private lateinit var summary: TextView
     private lateinit var search: EditText
     private var filter = "ALL"
+    private val language get() = prefs.getString("language", "en") ?: "en"
+    private fun tr(en: String, te: String) = if (language == "te") te else en
     private var tts: TextToSpeech? = null
     private val prefs by lazy { getSharedPreferences("downline_data", MODE_PRIVATE) }
     private val contactPermission = 201
@@ -101,14 +103,16 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             ReminderScheduler.scheduleNext(this@MainActivity)
             Toast.makeText(this@MainActivity, "Monthly CNC reminder is scheduled", Toast.LENGTH_LONG).show()
         }, weightedParams())
-        row2.addView(actionButton("🔊  Telugu Voice", 0xFF9B51E0.toInt()) { speakReminder() }, weightedParams())
+        row2.addView(actionButton("🔊  ${tr("Voice Reminder", "వాయిస్ రిమైండర్")}", 0xFF9B51E0.toInt()) { speakReminder() }, weightedParams())
         actionGrid.addView(row2)
-        actionGrid.addView(actionButton("📤  Backup / Share Member List", 0xFFFF8A3D.toInt()) { shareBackup() },
+        actionGrid.addView(actionButton("📤  ${tr("Backup / Share Member List", "బ్యాకప్ / సభ్యుల జాబితా షేర్")}", 0xFFFF8A3D.toInt()) { shareBackup() },
             LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(6) })
+        actionGrid.addView(actionButton("⚙️  ${tr("Settings / Language", "సెట్టింగ్స్ / భాష")}", 0xFF52647A.toInt()) { showLanguageSettings() },
+            LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
         main.addView(actionGrid, marginParams(-1, -2, 0, 0, 0, 16))
 
         search = EditText(this).apply {
-            hint = "🔍  Search member name or phone"
+            hint = "🔍  ${tr("Search member name or phone", "సభ్యుడి పేరు లేదా ఫోన్ వెతకండి")}"
             setSingleLine(true)
             textSize = 15f
             setTextColor(0xFF17365D.toInt())
@@ -183,7 +187,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             (filter == "ALL" || (filter == "DONE" && it.doneMonth == monthKey) || (filter == "PENDING" && it.doneMonth != monthKey))
         }
         if (filtered.isEmpty()) {
-            listArea.addView(TextView(this).apply { text = "సభ్యులు కనిపించలేదు"; textSize = 16f; setPadding(0,18,0,18) })
+            listArea.addView(TextView(this).apply { text = tr("No members found", "సభ్యులు కనిపించలేదు"); textSize = 16f; setPadding(0,18,0,18) })
         }
         filtered.forEach { m ->
             val card = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(10,12,10,12) }
@@ -277,8 +281,19 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             }.setNegativeButton("Cancel", null).show()
     }
 
+    private fun showLanguageSettings() {
+        val options = arrayOf("English (Default)", "తెలుగు")
+        val selected = if (language == "te") 1 else 0
+        AlertDialog.Builder(this).setTitle("App Language / యాప్ భాష")
+            .setSingleChoiceItems(options, selected) { dialog, which ->
+                prefs.edit().putString("language", if (which == 1) "te" else "en").apply()
+                dialog.dismiss(); buildScreen()
+                toast(if (which == 1) "తెలుగు భాష ఎంపికైంది" else "English selected")
+            }.setNegativeButton("Cancel", null).show()
+    }
+
     private fun speakReminder() {
-        val msg = "గుడ్ మార్నింగ్. నమస్కారం అండి. నేను లావణ్య మాట్లాడుతున్నాను, టీమ్ బంజారాహిల్స్ నుంచి. మన వెస్టిజ్ సి ఎన్ సి గురించి చిన్న రిమైండర్. ఈ నెల రెండు నుంచి పద్నాలుగో తేదీ లోపు మీ సి ఎన్ సి పూర్తి చేసుకోండి. సహాయం కావాలంటే నాకు చెప్పండి. థాంక్యూ అండి."
+        val msg = if (language == "te") "గుడ్ మార్నింగ్. నమస్కారం అండి. నేను లావణ్య మాట్లాడుతున్నాను, టీమ్ బంజారాహిల్స్ నుంచి. మన వెస్టిజ్ సి ఎన్ సి గురించి చిన్న రిమైండర్. ఈ నెల రెండు నుంచి పద్నాలుగో తేదీ లోపు మీ సి ఎన్ సి పూర్తి చేసుకోండి. సహాయం కావాలంటే నాకు చెప్పండి. థాంక్యూ అండి." else "Good morning. This is a reminder from Team Banjarahills about your Vestige CNC. Please complete your monthly CNC between the 2nd and 14th. Contact your team leader if you need any help. Thank you."
         tts?.speak(msg, TextToSpeech.QUEUE_FLUSH, null, "cnc_voice")
             ?: toast("Text to Speech సిద్ధంగా లేదు")
     }
