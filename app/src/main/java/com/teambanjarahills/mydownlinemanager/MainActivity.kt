@@ -86,7 +86,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         summary = TextView(this).apply {
             textSize = 16f
             setTextColor(0xFF17365D.toInt())
-            setPadding(18, 18, 18, 18)
+            setPadding(dp(14), dp(14), dp(14), dp(14))
             background = rounded(0xFFFFFFFF.toInt(), 20)
         }
         main.addView(summary, marginParams(-1, -2, 0, 0, 0, 16))
