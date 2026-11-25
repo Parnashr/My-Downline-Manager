@@ -50,17 +50,17 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     private fun buildScreen() {
-        val scroll = ScrollView(this).apply { setBackgroundColor(0xFFF3F6FC.toInt()) }
+        val scroll = ScrollView(this).apply { setBackgroundColor(0xFFF3F6FC.toInt()); isFillViewport = true; clipToPadding = false }
         main = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(18, 18, 18, 26)
+            setPadding(dp(12), dp(12), dp(12), dp(24))
         }
         scroll.addView(main); setContentView(scroll)
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(18, 22, 18, 22)
+            setPadding(dp(14), dp(16), dp(14), dp(16))
             background = rounded(0xFF123B70.toInt(), 24)
         }
         val logo = TextView(this).apply {
@@ -70,15 +70,15 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             setTextColor(0xFFFFFFFF.toInt())
             background = rounded(0xFF16A085.toInt(), 18)
         }
-        header.addView(logo, LinearLayout.LayoutParams(62, 62))
-        val brand = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(14,0,0,0) }
+        header.addView(logo, LinearLayout.LayoutParams(dp(54), dp(54)))
+        val brand = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(10),0,0,0) }
         brand.addView(TextView(this).apply {
             text = "My Downline Manager"
-            textSize = 21f; setTextColor(0xFFFFFFFF.toInt()); setTypeface(null, android.graphics.Typeface.BOLD)
+            textSize = 18f; maxLines = 2; setTextColor(0xFFFFFFFF.toInt()); setTypeface(null, android.graphics.Typeface.BOLD)
         })
         brand.addView(TextView(this).apply {
             text = "TEAM BANJARAHILLS"
-            textSize = 12f; setTextColor(0xFFBFE8E2.toInt())
+            textSize = 11f; setTextColor(0xFFBFE8E2.toInt())
         })
         header.addView(brand)
         main.addView(header, marginParams(-1, -2, 0, 0, 0, 18))
@@ -104,7 +104,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         row2.addView(actionButton("🔊  Telugu Voice", 0xFF7652B5.toInt()) { speakReminder() }, weightedParams())
         actionGrid.addView(row2)
         actionGrid.addView(actionButton("📤  Backup / Share Member List", 0xFF42566F.toInt()) { shareBackup() },
-            LinearLayout.LayoutParams(-1, 54).apply { topMargin = 8 })
+            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(6) })
         main.addView(actionGrid, marginParams(-1, -2, 0, 0, 0, 16))
 
         search = EditText(this).apply {
@@ -120,7 +120,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
             override fun afterTextChanged(s: Editable?) {}
         })
-        main.addView(search, marginParams(-1, 54, 0, 0, 0, 10))
+        main.addView(search, marginParams(-1, dp(50), 0, 0, 0, dp(8)))
 
         val filters = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -135,7 +135,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                 background = rounded(if (filter == f) 0xFF167D9A.toInt() else 0xFFE2EAF4.toInt(), 14)
                 setOnClickListener { filter = f; buildScreenRefreshFilters(); refreshList() }
             }
-            filters.addView(b, LinearLayout.LayoutParams(0, 44, 1f).apply { setMargins(4,0,4,0) })
+            filters.addView(b, LinearLayout.LayoutParams(0, dp(42), 1f).apply { setMargins(dp(3),0,dp(3),0) })
         }
         main.addView(filters)
         listArea = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -149,7 +149,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         buildScreen()
     }
 
-    private fun rounded(color: Int, radius: Int): android.graphics.drawable.GradientDrawable =
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()\n\n    private fun rounded(color: Int, radius: Int): android.graphics.drawable.GradientDrawable =
         android.graphics.drawable.GradientDrawable().apply {
             setColor(color); cornerRadius = radius.toFloat()
         }
@@ -158,13 +158,13 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         LinearLayout.LayoutParams(width, height).apply { setMargins(left, top, right, bottom) }
 
     private fun weightedParams() =
-        LinearLayout.LayoutParams(0, 54, 1f).apply { setMargins(4, 4, 4, 4) }
+        LinearLayout.LayoutParams(0, dp(52), 1f).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) }
 
     private fun actionButton(label: String, color: Int, action: () -> Unit): TextView =
         TextView(this).apply {
-            text = label; textSize = 13f; gravity = Gravity.CENTER
+            text = label; textSize = 12f; maxLines = 2; gravity = Gravity.CENTER
             setTextColor(0xFFFFFFFF.toInt()); setTypeface(null, android.graphics.Typeface.BOLD)
-            setPadding(8, 8, 8, 8); background = rounded(color, 16)
+            setPadding(dp(5), dp(6), dp(5), dp(6)); background = rounded(color, 14)
             setOnClickListener { action() }
         }
 
