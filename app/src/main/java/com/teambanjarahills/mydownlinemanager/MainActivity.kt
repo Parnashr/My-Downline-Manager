@@ -61,14 +61,14 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(14), dp(16), dp(14), dp(16))
-            background = rounded(0xFF123B70.toInt(), 24)
+            background = gradient(intArrayOf(0xFF123B70.toInt(), 0xFF5636A8.toInt(), 0xFFB83280.toInt()), 24)
         }
         val logo = TextView(this).apply {
             text = "✦"
             textSize = 34f
             gravity = Gravity.CENTER
             setTextColor(0xFFFFFFFF.toInt())
-            background = rounded(0xFF16A085.toInt(), 18)
+            background = gradient(intArrayOf(0xFFFFB547.toInt(), 0xFFFF5F6D.toInt(), 0xFF845EC2.toInt()), 18)
         }
         header.addView(logo, LinearLayout.LayoutParams(dp(54), dp(54)))
         val brand = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(10),0,0,0) }
@@ -78,32 +78,32 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         })
         brand.addView(TextView(this).apply {
             text = "TEAM BANJARAHILLS"
-            textSize = 11f; setTextColor(0xFFBFE8E2.toInt())
+            textSize = 11f; setTextColor(0xFFFFD6F0.toInt())
         })
         header.addView(brand)
         main.addView(header, marginParams(-1, -2, 0, 0, 0, 18))
 
         summary = TextView(this).apply {
             textSize = 16f
-            setTextColor(0xFF17365D.toInt())
+            setTextColor(0xFFFFFFFF.toInt())
             setPadding(dp(14), dp(14), dp(14), dp(14))
-            background = rounded(0xFFFFFFFF.toInt(), 20)
+            background = gradient(intArrayOf(0xFF2878C8.toInt(), 0xFF6546C7.toInt(), 0xFFB83280.toInt()), 20)
         }
         main.addView(summary, marginParams(-1, -2, 0, 0, 0, 16))
 
         val actionGrid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val row1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        row1.addView(actionButton("📥  Import Contacts", 0xFF167D9A.toInt()) { importContacts() }, weightedParams())
-        row1.addView(actionButton("➕  Add Member", 0xFF2878C8.toInt()) { addManual() }, weightedParams())
+        row1.addView(actionButton("📥  Import Contacts", 0xFF00A896.toInt()) { importContacts() }, weightedParams())
+        row1.addView(actionButton("➕  Add Member", 0xFF3F75E8.toInt()) { addManual() }, weightedParams())
         actionGrid.addView(row1)
         val row2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        row2.addView(actionButton("🔔  CNC Reminder", 0xFF16866B.toInt()) {
+        row2.addView(actionButton("🔔  CNC Reminder", 0xFF13A88A.toInt()) {
             ReminderScheduler.scheduleNext(this@MainActivity)
             Toast.makeText(this@MainActivity, "Monthly CNC reminder is scheduled", Toast.LENGTH_LONG).show()
         }, weightedParams())
-        row2.addView(actionButton("🔊  Telugu Voice", 0xFF7652B5.toInt()) { speakReminder() }, weightedParams())
+        row2.addView(actionButton("🔊  Telugu Voice", 0xFF9B51E0.toInt()) { speakReminder() }, weightedParams())
         actionGrid.addView(row2)
-        actionGrid.addView(actionButton("📤  Backup / Share Member List", 0xFF42566F.toInt()) { shareBackup() },
+        actionGrid.addView(actionButton("📤  Backup / Share Member List", 0xFFFF8A3D.toInt()) { shareBackup() },
             LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(6) })
         main.addView(actionGrid, marginParams(-1, -2, 0, 0, 0, 16))
 
@@ -113,7 +113,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             textSize = 15f
             setTextColor(0xFF17365D.toInt())
             setPadding(16, 8, 16, 8)
-            background = rounded(0xFFFFFFFF.toInt(), 16)
+            background = rounded(0xFFFDFBFF.toInt(), 16)
         }
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -149,7 +149,12 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         buildScreen()
     }
 
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()\n\n    private fun rounded(color: Int, radius: Int): android.graphics.drawable.GradientDrawable =
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun gradient(colors: IntArray, radius: Int): android.graphics.drawable.GradientDrawable =
+        android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT, colors).apply { cornerRadius = dp(radius).toFloat() }
+
+    private fun rounded(color: Int, radius: Int): android.graphics.drawable.GradientDrawable =
         android.graphics.drawable.GradientDrawable().apply {
             setColor(color); cornerRadius = radius.toFloat()
         }
@@ -182,7 +187,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         }
         filtered.forEach { m ->
             val card = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(10,12,10,12) }
-            card.background = rounded(0xFFFFFFFF.toInt(), 18)
+            card.background = rounded(0xFFFFFBFF.toInt(), 18)
             card.addView(TextView(this).apply {
                 text = "${m.name}\n${m.phone}\nCNC: ${if (m.doneMonth == monthKey) "DONE" else "PENDING"}"
                 textSize = 16f
