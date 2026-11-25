@@ -67,9 +67,9 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             gravity = Gravity.TOP
             minimumWidth = resources.displayMetrics.widthPixels
             setPadding(dp(16), dp(16), dp(16), dp(28))
-            layoutParams = ScrollView.LayoutParams(
-                ScrollView.LayoutParams.MATCH_PARENT,
-                ScrollView.LayoutParams.MATCH_PARENT
+            layoutParams = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
             )
         }
         scroll.addView(main)
