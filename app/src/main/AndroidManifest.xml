@@ -7,6 +7,7 @@
     <application
         android:allowBackup="true"
         android:label="My Downline Manager"
+        android:icon="@drawable/ic_app_logo"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:supportsRtl="true">
         <activity
