@@ -52,12 +52,28 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     private fun buildScreen() {
-        val scroll = ScrollView(this).apply { setBackgroundColor(0xFFF3F6FC.toInt()); isFillViewport = true; clipToPadding = false }
+        val scroll = ScrollView(this).apply {
+            setBackgroundColor(0xFFF3F6FC.toInt())
+            isFillViewport = true
+            clipToPadding = false
+            isVerticalScrollBarEnabled = true
+            layoutParams = android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
         main = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(12), dp(12), dp(24))
+            gravity = Gravity.TOP
+            minimumWidth = resources.displayMetrics.widthPixels
+            setPadding(dp(16), dp(16), dp(16), dp(28))
+            layoutParams = ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT,
+                ScrollView.LayoutParams.MATCH_PARENT
+            )
         }
-        scroll.addView(main); setContentView(scroll)
+        scroll.addView(main)
+        setContentView(scroll)
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -76,7 +92,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         val brand = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(10),0,0,0) }
         brand.addView(TextView(this).apply {
             text = "My Downline Manager"
-            textSize = 18f; maxLines = 2; setTextColor(0xFFFFFFFF.toInt()); setTypeface(null, android.graphics.Typeface.BOLD)
+            textSize = 20f; maxLines = 2; setTextColor(0xFFFFFFFF.toInt()); setTypeface(null, android.graphics.Typeface.BOLD)
         })
         brand.addView(TextView(this).apply {
             text = "TEAM BANJARAHILLS"
@@ -86,9 +102,11 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         main.addView(header, marginParams(-1, -2, 0, 0, 0, 18))
 
         summary = TextView(this).apply {
-            textSize = 16f
+            textSize = 18f
             setTextColor(0xFFFFFFFF.toInt())
-            setPadding(dp(14), dp(14), dp(14), dp(14))
+            setPadding(dp(18), dp(20), dp(18), dp(20))
+            minHeight = dp(132)
+            gravity = Gravity.CENTER_VERTICAL
             background = gradient(intArrayOf(0xFF2878C8.toInt(), 0xFF6546C7.toInt(), 0xFFB83280.toInt()), 20)
         }
         main.addView(summary, marginParams(-1, -2, 0, 0, 0, 16))
@@ -106,7 +124,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         row2.addView(actionButton("🔊  ${tr("Voice Reminder", "వాయిస్ రిమైండర్")}", 0xFF9B51E0.toInt()) { speakReminder() }, weightedParams())
         actionGrid.addView(row2)
         actionGrid.addView(actionButton("📤  ${tr("Backup / Share Member List", "బ్యాకప్ / సభ్యుల జాబితా షేర్")}", 0xFFFF8A3D.toInt()) { shareBackup() },
-            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(6) })
+            LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("⚙️  ${tr("Settings / Language", "సెట్టింగ్స్ / భాష")}", 0xFF52647A.toInt()) { showLanguageSettings() },
             LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
         main.addView(actionGrid, marginParams(-1, -2, 0, 0, 0, 16))
@@ -167,11 +185,11 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         LinearLayout.LayoutParams(width, height).apply { setMargins(left, top, right, bottom) }
 
     private fun weightedParams() =
-        LinearLayout.LayoutParams(0, dp(52), 1f).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) }
+        LinearLayout.LayoutParams(0, dp(62), 1f).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) }
 
     private fun actionButton(label: String, color: Int, action: () -> Unit): TextView =
         TextView(this).apply {
-            text = label; textSize = 12f; maxLines = 2; gravity = Gravity.CENTER
+            text = label; textSize = 14f; maxLines = 2; gravity = Gravity.CENTER
             setTextColor(0xFFFFFFFF.toInt()); setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(dp(5), dp(6), dp(5), dp(6)); background = rounded(color, 14)
             setOnClickListener { action() }
