@@ -10,6 +10,7 @@
         android:icon="@drawable/ic_app_logo"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:supportsRtl="true">
+        <activity android:name=".CncReminderCenterActivity" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true">
