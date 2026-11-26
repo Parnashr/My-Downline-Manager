@@ -6,6 +6,8 @@ import android.content.*
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
+import java.net.HttpURLConnection
+import java.net.URL
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -54,6 +56,51 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) setTtsLanguage()
+    }
+
+
+    private fun checkForUpdates() {
+        Toast.makeText(this, "Checking for updates…", Toast.LENGTH_SHORT).show()
+        Thread {
+            try {
+                val connection = (URL("https://api.github.com/repos/Parnashr/My-Downline-Manager/releases/latest").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    setRequestProperty("Accept", "application/vnd.github+json")
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                }
+                val body = connection.inputStream.bufferedReader().use { it.readText() }
+                connection.disconnect()
+                val release = JSONObject(body)
+                val tag = release.optString("tag_name")
+                val assets = release.optJSONArray("assets") ?: JSONArray()
+                var apkUrl = ""
+                for (i in 0 until assets.length()) {
+                    val asset = assets.getJSONObject(i)
+                    if (asset.optString("name").endsWith(".apk", true)) {
+                        apkUrl = asset.optString("browser_download_url")
+                        break
+                    }
+                }
+                val latest = tag.removePrefix("v")
+                val current = packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0"
+                runOnUiThread {
+                    when {
+                        apkUrl.isBlank() -> AlertDialog.Builder(this).setMessage("Latest release APK not found. Please try again later.").setPositiveButton("OK", null).show()
+                        latest == current -> AlertDialog.Builder(this).setTitle("You're up to date").setMessage("Installed version: $current").setPositiveButton("OK", null).show()
+                        else -> AlertDialog.Builder(this).setTitle("Update available")
+                            .setMessage("New version: $latest\\nInstalled version: $current\\n\\nDownload the latest APK?")
+                            .setPositiveButton("Download") { _, _ ->
+                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl)))
+                            }.setNegativeButton("Later", null).show()
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    AlertDialog.Builder(this).setMessage("Could not check updates. Please check your internet connection and try again.").setPositiveButton("OK", null).show()
+                }
+            }
+        }.start()
     }
 
     private fun buildScreen() {
@@ -132,6 +179,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         row3.addView(actionButton("🟢  WhatsApp Boot Camp", 0xFF159B63.toInt()) { showEventMessage("BOOT CAMP") }, weightedParams())
         row3.addView(actionButton("📅  Meeting Message", 0xFF2878C8.toInt()) { showEventMessage("MEETING") }, weightedParams())
         actionGrid.addView(row3)
+        actionGrid.addView(actionButton("🔄  Check for Updates / అప్‌డేట్స్", 0xFF0B7894.toInt()) { checkForUpdates() }, LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("🎬  CNC Reminder Center / CNC షార్ట్స్", 0xFFB65A25.toInt()) { startActivity(Intent(this, CncReminderCenterActivity::class.java)) }, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("🤖  AI Assistant / AI సహాయకుడు", 0xFF7B42C2.toInt()) { showAiAssistant() }, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("📤  ${tr("Backup / Share Member List", "బ్యాకప్ / సభ్యుల జాబితా షేర్")}", 0xFFFF8A3D.toInt()) { shareBackup() },
