@@ -559,7 +559,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             val a = JSONArray(prefs.getString("members","[]"))
             for (i in 0 until a.length()) {
                 val o = a.getJSONObject(i)
-                members.add(Member(o.optString("id", UUID.randomUUID().toString()),o.optString("name"),o.optString("phone"),o.optString("done"),o.optString("memberId"))))
+                members.add(Member(o.optString("id", UUID.randomUUID().toString()),o.optString("name"),o.optString("phone"),o.optString("done"),o.optString("memberId")))
             }
         } catch (_: Exception) {}
     }
