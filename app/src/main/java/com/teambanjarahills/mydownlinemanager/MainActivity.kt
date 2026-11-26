@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.text.Editable
 import android.text.TextWatcher
@@ -30,8 +31,10 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private lateinit var search: EditText
     private var filter = "ALL"
     private val language get() = prefs.getString("language", "en") ?: "en"
-    private fun tr(en: String, te: String) = if (language == "te") te else en
+    private fun tr(en: String, te: String, hi: String = en) = when (language) { "te" -> te; "hi" -> hi; else -> en }
     private var tts: TextToSpeech? = null
+    private var aiInput: EditText? = null
+    private val voiceRequest = 303
     private val prefs by lazy { getSharedPreferences("downline_data", MODE_PRIVATE) }
     private val contactPermission = 201
     private val notifyPermission = 202
@@ -48,7 +51,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) tts?.language = Locale("te", "IN")
+        if (status == TextToSpeech.SUCCESS) setTtsLanguage()
     }
 
     private fun buildScreen() {
@@ -127,6 +130,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         row3.addView(actionButton("🟢  WhatsApp Boot Camp", 0xFF159B63.toInt()) { showEventMessage("BOOT CAMP") }, weightedParams())
         row3.addView(actionButton("📅  Meeting Message", 0xFF2878C8.toInt()) { showEventMessage("MEETING") }, weightedParams())
         actionGrid.addView(row3)
+        actionGrid.addView(actionButton("🤖  AI Assistant / AI సహాయకుడు", 0xFF7B42C2.toInt()) { showAiAssistant() }, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("📤  ${tr("Backup / Share Member List", "బ్యాకప్ / సభ్యుల జాబితా షేర్")}", 0xFFFF8A3D.toInt()) { shareBackup() },
             LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("⚙️  ${tr("Settings / Language", "సెట్టింగ్స్ / భాష")}", 0xFF52647A.toInt()) { showLanguageSettings() },
@@ -308,20 +312,93 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     private fun showLanguageSettings() {
-        val options = arrayOf("English (Default)", "తెలుగు")
-        val selected = if (language == "te") 1 else 0
+        val options = arrayOf("English (Default)", "తెలుగు (Telugu)", "हिन्दी (Hindi)")
+        val selected = when (language) { "te" -> 1; "hi" -> 2; else -> 0 }
         AlertDialog.Builder(this).setTitle("App Language / యాప్ భాష")
             .setSingleChoiceItems(options, selected) { dialog, which ->
-                prefs.edit().putString("language", if (which == 1) "te" else "en").apply()
+                val selectedLanguage = when (which) { 1 -> "te"; 2 -> "hi"; else -> "en" }
+                prefs.edit().putString("language", selectedLanguage).apply()
+                setTtsLanguage()
                 dialog.dismiss(); buildScreen()
-                toast(if (which == 1) "తెలుగు భాష ఎంపికైంది" else "English selected")
+                toast(when (selectedLanguage) { "te" -> "తెలుగు భాష ఎంపికైంది"; "hi" -> "हिन्दी भाषा चुनी गई"; else -> "English selected" })
             }.setNegativeButton("Cancel", null).show()
     }
 
+    private fun setTtsLanguage() {
+        val locale = when (language) { "te" -> Locale("te", "IN"); "hi" -> Locale("hi", "IN"); else -> Locale("en", "IN") }
+        val result = tts?.setLanguage(locale)
+        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) toast("Selected voice is not installed. Install this language in Android Text-to-Speech settings.")
+    }
+    private fun speak(text: String) {
+        if (tts == null) { toast("Text to Speech సిద్ధంగా లేదు"); return }
+        setTtsLanguage()
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "assistant_voice")
+    }
     private fun speakReminder() {
-        val msg = if (language == "te") "గుడ్ మార్నింగ్. నమస్కారం అండి. నేను లావణ్య మాట్లాడుతున్నాను, టీమ్ బంజారాహిల్స్ నుంచి. మన వెస్టిజ్ సి ఎన్ సి గురించి చిన్న రిమైండర్. ఈ నెల రెండు నుంచి పద్నాలుగో తేదీ లోపు మీ సి ఎన్ సి పూర్తి చేసుకోండి. సహాయం కావాలంటే నాకు చెప్పండి. థాంక్యూ అండి." else "Good morning. This is a reminder from Team Banjarahills about your Vestige CNC. Please complete your monthly CNC between the 2nd and 14th. Contact your team leader if you need any help. Thank you."
-        tts?.speak(msg, TextToSpeech.QUEUE_FLUSH, null, "cnc_voice")
-            ?: toast("Text to Speech సిద్ధంగా లేదు")
+        val msg = when (language) {
+            "te" -> "నమస్కారం. టీమ్ బంజారాహిల్స్ నుంచి వెస్టిజ్ సి ఎన్ సి రిమైండర్. ఈ నెల రెండు నుంచి పద్నాలుగో తేదీ లోపు మీ సి ఎన్ సి పూర్తి చేసుకోండి. సహాయం కావాలంటే మీ టీమ్ లీడర్‌ను సంప్రదించండి. ధన్యవాదాలు."
+            "hi" -> "नमस्ते। टीम बंजारा हिल्स की ओर से वेस्टिज सी एन सी रिमाइंडर। कृपया इस महीने की दो से चौदह तारीख के बीच अपना सी एन सी पूरा करें। सहायता के लिए अपने टीम लीडर से संपर्क करें। धन्यवाद।"
+            else -> "Good morning. This is a reminder from Team Banjarahills about your Vestige CNC. Please complete your monthly CNC between the 2nd and 14th. Contact your team leader if you need help. Thank you."
+        }
+        speak(msg)
+    }
+    private fun showAiAssistant() {
+        val input = EditText(this).apply {
+            hint = tr("Ask about team, CNC, reminders or messages", "టీమ్, CNC, రిమైండర్లు లేదా మెసేజ్‌ల గురించి అడగండి", "टीम, CNC, रिमाइंडर या संदेश के बारे में पूछें")
+            minLines = 2; textSize = 16f
+        }
+        aiInput = input
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), dp(4))
+            addView(TextView(this@MainActivity).apply { text = tr("Hello! I can help with your team follow-ups.", "నమస్కారం! మీ టీమ్ ఫాలో-అప్స్‌లో సహాయం చేస్తాను.", "नमस्ते! मैं आपकी टीम फॉलो-अप में मदद कर सकता हूँ।"); textSize = 14f })
+            addView(input)
+            addView(actionButton("🎙️ Speak / మాట్లాడండి / बोलें", 0xFF168C82.toInt()) { startAiVoiceInput() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
+        }
+        AlertDialog.Builder(this).setTitle("🤖 AI Assistant").setView(box)
+            .setPositiveButton(tr("Ask", "అడగండి", "पूछें")) { _, _ -> answerAi(input.text.toString()) }
+            .setNeutralButton(tr("Speak answer", "సమాధానం వినండి", "जवाब सुनें")) { _, _ -> answerAi(input.text.toString(), true) }
+            .setNegativeButton(tr("Close", "మూసివేయండి", "बंद करें"), null).show()
+    }
+    private fun startAiVoiceInput() {
+        try {
+            val locale = when (language) { "te" -> "te-IN"; "hi" -> "hi-IN"; else -> "en-IN" }
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, tr("Speak your question", "మీ ప్రశ్న చెప్పండి", "अपना सवाल बोलें"))
+            }
+            startActivityForResult(intent, voiceRequest)
+        } catch (_: Exception) { toast("Voice input service is not available on this phone") }
+    }
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == voiceRequest && resultCode == RESULT_OK) {
+            val spoken = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
+            aiInput?.setText(spoken)
+            if (spoken.isNotBlank()) answerAi(spoken, true)
+        }
+    }
+    private fun answerAi(question: String, speakAnswer: Boolean = false) {
+        val q = question.trim().lowercase(Locale.ROOT)
+        if (q.isBlank()) { toast(tr("Please type or speak a question", "దయచేసి ప్రశ్న టైప్ చేయండి లేదా మాట్లాడండి", "कृपया सवाल लिखें या बोलें")); return }
+        val total = members.size
+        val done = members.count { it.doneMonth == monthKey }
+        val pending = total - done
+        val answer = when {
+            listOf("pending", "పెండింగ్", "बाकी", "बकाया").any { q.contains(it) } ->
+                when (language) { "te" -> "ఈ నెల మొత్తం $total మంది సభ్యుల్లో $pending మంది CNC పెండింగ్‌లో ఉన్నారు. $done మంది పూర్తి చేశారు."; "hi" -> "इस महीने कुल $total सदस्यों में से $pending सदस्यों का CNC बाकी है। $done सदस्यों ने पूरा किया है।"; else -> "This month, $pending of $total members have pending CNC. $done members have completed it." }
+            listOf("done", "completed", "పూర్తి", "पूरा", "हो गया").any { q.contains(it) } ->
+                when (language) { "te" -> "ఈ నెల $done మంది సభ్యులు CNC పూర్తి చేశారు."; "hi" -> "इस महीने $done सदस्यों ने CNC पूरा किया है।"; else -> "$done members have completed CNC this month." }
+            listOf("total", "members", "మొత్తం", "సభ్యులు", "कुल", "सदस्य").any { q.contains(it) } ->
+                when (language) { "te" -> "మీ యాప్‌లో మొత్తం $total మంది సభ్యులు ఉన్నారు."; "hi" -> "आपके ऐप में कुल $total टीम सदस्य हैं।"; else -> "You have $total team members in the app." }
+            listOf("reminder", "రిమైండర్", "याद", "रिमाइंडर", "cnc").any { q.contains(it) } ->
+                when (language) { "te" -> "ప్రతి నెల 2వ తేదీ నుంచి 14వ తేదీ మధ్య CNC పూర్తి చేయమని సభ్యులకు గుర్తు చేయండి. CNC Reminder బటన్ ఉపయోగించండి."; "hi" -> "सदस्यों को हर महीने 2 से 14 तारीख के बीच CNC पूरा करने की याद दिलाएँ। CNC Reminder बटन दबाएँ।"; else -> "Remind members to complete CNC between the 2nd and 14th each month. Use the CNC Reminder button." }
+            listOf("message", "మెసేజ్", "సందేశం", "संदेश", "whatsapp", "व्हाट्सएप").any { q.contains(it) } ->
+                when (language) { "te" -> "WhatsApp Boot Camp లేదా Meeting Message బటన్ ద్వారా ఆహ్వాన సందేశం తయారు చేసి షేర్ చేయవచ్చు."; "hi" -> "WhatsApp Boot Camp या Meeting Message बटन से निमंत्रण संदेश बनाकर साझा कर सकते हैं।"; else -> "Use WhatsApp Boot Camp or Meeting Message to create and share an invitation." }
+            else -> when (language) { "te" -> "నేను సభ్యుల సంఖ్య, CNC Pending, CNC Completed, Reminder మరియు WhatsApp మెసేజ్‌ల గురించి సహాయం చేయగలను. ఉదా: ఈ నెల ఎంతమంది Pendingలో ఉన్నారు?"; "hi" -> "मैं सदस्य संख्या, CNC बाकी, CNC पूरा, रिमाइंडर और WhatsApp संदेशों में मदद कर सकता हूँ। उदाहरण: इस महीने कितने सदस्य बाकी हैं?"; else -> "I can help with member count, CNC pending, completed status, reminders and WhatsApp messages. Try: How many members are pending this month?" }
+        }
+        AlertDialog.Builder(this).setTitle("🤖 AI Assistant").setMessage(answer).setPositiveButton(tr("OK", "సరే", "ठीक है"), null).show()
+        if (speakAnswer) speak(answer)
     }
 
     private fun showEventMessage(type: String) {
