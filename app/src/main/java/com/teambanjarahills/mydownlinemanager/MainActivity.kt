@@ -347,7 +347,34 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                     "📢 *TEAM BANJARAHILLS – TEAM MEETING* 📢\n\nనమస్కారం Team!\nమన టీమ్ మీటింగ్‌కు మీ అందరికీ ఆహ్వానం.\n📅 Date: $eventDate\n⏰ Time: $eventTime\n📍 Venue / Link: $venue\n${if (extra.isNotBlank()) "\n$extra\n" else ""}\nదయచేసి తప్పకుండా సమయానికి Join అవ్వండి.\n– Team Banjarahills"
                 }
                 sendWhatsApp(msg)
-            }.setNegativeButton("Cancel", null).show()
+            }.setNeutralButton("Schedule Alert") { _, _ -> chooseEventReminder(type) }
+            .setNegativeButton("Cancel", null).show()
+    }
+
+    private fun chooseEventReminder(type: String) {
+        val now = Calendar.getInstance()
+        DatePickerDialog(this, { _, year, month, day ->
+            TimePickerDialog(this, { _, hour, minute ->
+                val whenToNotify = Calendar.getInstance().apply {
+                    set(year, month, day, hour, minute, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                if (whenToNotify.timeInMillis <= System.currentTimeMillis()) {
+                    toast("దయచేసి భవిష్యత్తు తేదీ, సమయం ఎంచుకోండి")
+                } else {
+                    val eventId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+                    val alarmIntent = Intent(this, EventReminderReceiver::class.java).apply {
+                        putExtra("event_type", type)
+                        putExtra("event_id", eventId)
+                    }
+                    val pending = PendingIntent.getBroadcast(this, eventId, alarmIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                    getSystemService(AlarmManager::class.java).setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP, whenToNotify.timeInMillis, pending)
+                    toast("$type alert scheduled")
+                }
+            }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), false).show()
+        }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).show()
     }
 
     private fun sendWhatsApp(message: String, phone: String? = null) {
@@ -399,6 +426,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         if (Build.VERSION.SDK_INT >= 26) {
             val nm = getSystemService(NotificationManager::class.java)
             nm.createNotificationChannel(NotificationChannel("cnc_reminders","CNC Reminders",NotificationManager.IMPORTANCE_HIGH))
+            nm.createNotificationChannel(NotificationChannel("team_event_reminders","Boot Camp & Meeting Alerts",NotificationManager.IMPORTANCE_HIGH))
         }
     }
     private fun askNotificationPermission() {
@@ -440,4 +468,21 @@ class ReminderReceiver : BroadcastReceiver() {
 }
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) { ReminderScheduler.scheduleNext(context) }
+}
+
+ 
+class EventReminderReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        val type = intent?.getStringExtra("event_type") ?: "TEAM EVENT"
+        val id = intent?.getIntExtra("event_id", 901) ?: 901
+        if (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            val notification = if (Build.VERSION.SDK_INT >= 26)
+                Notification.Builder(context, "team_event_reminders") else Notification.Builder(context)
+            notification.setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("Team Banjarahills – $type")
+                .setContentText("$type starts now. Please join on time.")
+                .setAutoCancel(true)
+            context.getSystemService(NotificationManager::class.java).notify(id, notification.build())
+        }
+    }
 }
