@@ -26,22 +26,40 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug
+      - name: Prepare stable release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Add KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD in GitHub Actions repository secrets."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/mydm-release.jks"
+          keytool -list -keystore "$RUNNER_TEMP/mydm-release.jks" -storepass "$KEYSTORE_PASSWORD" >/dev/null
+
+      - name: Build signed release APK
+        run: gradle :app:assembleRelease
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          MYDM_KEYSTORE_FILE: ${{ runner.temp }}/mydm-release.jks
+          MYDM_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          MYDM_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          MYDM_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload APK artifact
+      - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Downline-Manager-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: My-Downline-Manager-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
-      - name: Publish latest APK release
+      - name: Publish latest signed APK release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: My Downline Manager v1.0.${{ github.run_number }}
           make_latest: true
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: app/build/outputs/apk/release/app-release.apk
