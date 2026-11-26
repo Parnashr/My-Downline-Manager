@@ -132,6 +132,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         row3.addView(actionButton("🟢  WhatsApp Boot Camp", 0xFF159B63.toInt()) { showEventMessage("BOOT CAMP") }, weightedParams())
         row3.addView(actionButton("📅  Meeting Message", 0xFF2878C8.toInt()) { showEventMessage("MEETING") }, weightedParams())
         actionGrid.addView(row3)
+        actionGrid.addView(actionButton("🎬  CNC Reminder Center / CNC షార్ట్స్", 0xFFB65A25.toInt()) { startActivity(Intent(this, CncReminderCenterActivity::class.java)) }, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("🤖  AI Assistant / AI సహాయకుడు", 0xFF7B42C2.toInt()) { showAiAssistant() }, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("📤  ${tr("Backup / Share Member List", "బ్యాకప్ / సభ్యుల జాబితా షేర్")}", 0xFFFF8A3D.toInt()) { shareBackup() },
             LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(6) })
