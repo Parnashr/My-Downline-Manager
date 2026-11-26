@@ -30,6 +30,8 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private lateinit var summary: TextView
     private lateinit var search: EditText
     private var filter = "ALL"
+    private var displayLimit = 100
+    private val memberLimit = 3000
     private val language get() = prefs.getString("language", "en") ?: "en"
     private fun tr(en: String, te: String, hi: String = en) = when (language) { "te" -> te; "hi" -> hi; else -> en }
     private var tts: TextToSpeech? = null
@@ -147,7 +149,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         }
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { displayLimit = 100; refreshList() }
             override fun afterTextChanged(s: Editable?) {}
         })
         main.addView(search, marginParams(-1, dp(50), 0, 0, 0, dp(8)))
@@ -215,7 +217,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         if (filtered.isEmpty()) {
             listArea.addView(TextView(this).apply { text = tr("No members found", "సభ్యులు కనిపించలేదు"); textSize = 16f; setPadding(0,18,0,18) })
         }
-        filtered.forEach { m ->
+        filtered.take(displayLimit).forEach { m ->
             val card = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(10,12,10,12) }
             card.background = rounded(0xFFFFFBFF.toInt(), 18)
             card.addView(TextView(this).apply {
@@ -248,6 +250,12 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             card.addView(actions)
             listArea.addView(card)
             listArea.addView(View(this).apply { setBackgroundColor(0xFFCCCCCC.toInt()) }, LinearLayout.LayoutParams(-1,1))
+        }
+        if (filtered.size > displayLimit) {
+            listArea.addView(actionButton("⬇️  Load More (${filtered.size - displayLimit} remaining)", 0xFF2878C8.toInt()) {
+                displayLimit = (displayLimit + 100).coerceAtMost(memberLimit)
+                refreshList()
+            }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(10) })
         }
     }
 
@@ -290,11 +298,12 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                 var count = 0
                 names.indices.filter { selected[it] }.forEach { i ->
                     val norm = normalize(phones[i])
-                    if (norm.isNotBlank() && members.none { normalize(it.phone) == norm }) {
+                    if (members.size < memberLimit && norm.isNotBlank() && members.none { normalize(it.phone) == norm }) {
                         members.add(Member(UUID.randomUUID().toString(), names[i], phones[i])); count++
                     }
                 }
-                save(); refreshList(); toast("$count మంది సభ్యులు జోడించబడ్డారు")
+                save(); refreshList()
+                toast("$count మంది సభ్యులు జోడించబడ్డారు" + if (members.size >= memberLimit) " (గరిష్ఠ పరిమితి $memberLimit)" else "")
             }.setNegativeButton("Cancel", null).show()
     }
 
@@ -305,7 +314,8 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         AlertDialog.Builder(this).setTitle("సభ్యుడిని జోడించండి").setView(box)
             .setPositiveButton("Save") { _, _ ->
                 val n = name.text.toString().trim(); val p = phone.text.toString().trim()
-                if (n.isNotBlank() && normalize(p).isNotBlank() && members.none { normalize(it.phone) == normalize(p) }) {
+                if (members.size >= memberLimit) { toast("గరిష్ఠంగా $memberLimit మంది సభ్యులనే జోడించవచ్చు") }
+                else if (n.isNotBlank() && normalize(p).isNotBlank() && members.none { normalize(it.phone) == normalize(p) }) {
                     members.add(Member(UUID.randomUUID().toString(), n, p)); save(); refreshList()
                 } else toast("పేరు మరియు కొత్త ఫోన్ నంబర్ ఇవ్వండి")
             }.setNegativeButton("Cancel", null).show()
