@@ -123,6 +123,10 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         }, weightedParams())
         row2.addView(actionButton("🔊  ${tr("Voice Reminder", "వాయిస్ రిమైండర్")}", 0xFF9B51E0.toInt()) { speakReminder() }, weightedParams())
         actionGrid.addView(row2)
+        val row3 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        row3.addView(actionButton("🟢  WhatsApp Boot Camp", 0xFF159B63.toInt()) { showEventMessage("BOOT CAMP") }, weightedParams())
+        row3.addView(actionButton("📅  Meeting Message", 0xFF2878C8.toInt()) { showEventMessage("MEETING") }, weightedParams())
+        actionGrid.addView(row3)
         actionGrid.addView(actionButton("📤  ${tr("Backup / Share Member List", "బ్యాకప్ / సభ్యుల జాబితా షేర్")}", 0xFFFF8A3D.toInt()) { shareBackup() },
             LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(6) })
         actionGrid.addView(actionButton("⚙️  ${tr("Settings / Language", "సెట్టింగ్స్ / భాష")}", 0xFF52647A.toInt()) { showLanguageSettings() },
@@ -222,6 +226,10 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             actions.addView(smallButton("Call") {
                 startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(m.phone)}")))
             })
+            actions.addView(smallButton("WhatsApp") {
+                val msg = "నమస్కారం ${m.name} గారు. Team Banjarahills నుంచి మీకు ఒక ముఖ్యమైన సమాచారం. దయచేసి Boot Camp / Meeting వివరాల కోసం స్పందించండి. ధన్యవాదాలు."
+                sendWhatsApp(msg, m.phone)
+            })
             actions.addView(smallButton("Share") {
                 val msg = "నమస్కారం ${m.name} గారు. Team Banjarahills నుంచి CNC రిమైండర్. ఈ నెల 2వ తేదీ నుంచి 14వ తేదీ లోపు మీ CNC పూర్తి చేసుకోండి. ధన్యవాదాలు."
                 startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
@@ -314,6 +322,51 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         val msg = if (language == "te") "గుడ్ మార్నింగ్. నమస్కారం అండి. నేను లావణ్య మాట్లాడుతున్నాను, టీమ్ బంజారాహిల్స్ నుంచి. మన వెస్టిజ్ సి ఎన్ సి గురించి చిన్న రిమైండర్. ఈ నెల రెండు నుంచి పద్నాలుగో తేదీ లోపు మీ సి ఎన్ సి పూర్తి చేసుకోండి. సహాయం కావాలంటే నాకు చెప్పండి. థాంక్యూ అండి." else "Good morning. This is a reminder from Team Banjarahills about your Vestige CNC. Please complete your monthly CNC between the 2nd and 14th. Contact your team leader if you need any help. Thank you."
         tts?.speak(msg, TextToSpeech.QUEUE_FLUSH, null, "cnc_voice")
             ?: toast("Text to Speech సిద్ధంగా లేదు")
+    }
+
+    private fun showEventMessage(type: String) {
+        val date = EditText(this).apply { hint = "Date (ఉదా: 30 Nov 2026)" }
+        val time = EditText(this).apply { hint = "Time (ఉదా: 10:00 AM)" }
+        val place = EditText(this).apply { hint = "Venue / Meeting link" }
+        val details = EditText(this).apply { hint = "Extra details (optional)" }
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(date); addView(time); addView(place); addView(details)
+        }
+        val title = if (type == "BOOT CAMP") "Boot Camp Invitation" else "Team Meeting Invitation"
+        AlertDialog.Builder(this).setTitle(title).setView(box)
+            .setPositiveButton("Open WhatsApp") { _, _ ->
+                val eventDate = date.text.toString().trim().ifBlank { "Please confirm" }
+                val eventTime = time.text.toString().trim().ifBlank { "Please confirm" }
+                val venue = place.text.toString().trim().ifBlank { "Will be shared soon" }
+                val extra = details.text.toString().trim()
+                val msg = if (type == "BOOT CAMP") {
+                    "🌟 *TEAM BANJARAHILLS – BOOT CAMP* 🌟\n\nనమస్కారం Team!\nమన ప్రత్యేక Boot Camp కు మీకు ఆహ్వానం.\n📅 Date: $eventDate\n⏰ Time: $eventTime\n📍 Venue / Link: $venue\n${if (extra.isNotBlank()) "\n$extra\n" else ""}\nదయచేసి సమయానికి హాజరుకండి. మీ విజయానికి ఇది మంచి అవకాశం!\n– Team Banjarahills"
+                } else {
+                    "📢 *TEAM BANJARAHILLS – TEAM MEETING* 📢\n\nనమస్కారం Team!\nమన టీమ్ మీటింగ్‌కు మీ అందరికీ ఆహ్వానం.\n📅 Date: $eventDate\n⏰ Time: $eventTime\n📍 Venue / Link: $venue\n${if (extra.isNotBlank()) "\n$extra\n" else ""}\nదయచేసి తప్పకుండా సమయానికి Join అవ్వండి.\n– Team Banjarahills"
+                }
+                sendWhatsApp(msg)
+            }.setNegativeButton("Cancel", null).show()
+    }
+
+    private fun sendWhatsApp(message: String, phone: String? = null) {
+        val digits = phone?.filter { it.isDigit() }.orEmpty()
+        val number = when {
+            digits.isBlank() -> ""
+            digits.length == 10 -> "91$digits"
+            else -> digits
+        }
+        val url = "https://wa.me/$number?text=${Uri.encode(message)}"
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: Exception) {
+            val share = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, message)
+            }
+            startActivity(Intent.createChooser(share, "Share message"))
+        }
     }
 
     private fun shareBackup() {
