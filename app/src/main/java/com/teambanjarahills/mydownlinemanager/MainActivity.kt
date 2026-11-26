@@ -23,7 +23,7 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 
-data class Member(val id: String, var name: String, var phone: String, var doneMonth: String = "")
+data class Member(val id: String, var name: String, var phone: String, var doneMonth: String = "", var memberId: String = "")
 
 class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private val members = mutableListOf<Member>()
@@ -260,7 +260,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         listArea.removeAllViews()
         val q = if (::search.isInitialized) search.text.toString().trim().lowercase(Locale.getDefault()) else ""
         val filtered = members.filter {
-            (it.name.lowercase(Locale.getDefault()).contains(q) || it.phone.contains(q)) &&
+            (it.name.lowercase(Locale.getDefault()).contains(q) || it.phone.contains(q) || it.memberId.lowercase(Locale.getDefault()).contains(q)) &&
             (filter == "ALL" || (filter == "DONE" && it.doneMonth == monthKey) || (filter == "PENDING" && it.doneMonth != monthKey))
         }
         if (filtered.isEmpty()) {
@@ -270,7 +270,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             val card = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(10,12,10,12) }
             card.background = rounded(0xFFFFFBFF.toInt(), 18)
             card.addView(TextView(this).apply {
-                text = "${m.name}\n${m.phone}\nCNC: ${if (m.doneMonth == monthKey) "DONE" else "PENDING"}"
+                text = "${m.name}\nID: ${m.memberId.ifBlank { "—" }}\n${m.phone}\nCNC: ${if (m.doneMonth == monthKey) "DONE" else "PENDING"}"
                 textSize = 16f
             })
             val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -348,7 +348,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                 names.indices.filter { selected[it] }.forEach { i ->
                     val norm = normalize(phones[i])
                     if (members.size < memberLimit && norm.isNotBlank() && members.none { normalize(it.phone) == norm }) {
-                        members.add(Member(UUID.randomUUID().toString(), names[i], phones[i])); count++
+                        members.add(Member(UUID.randomUUID().toString(), names[i], phones[i], memberId = "")); count++
                     }
                 }
                 save(); refreshList()
@@ -357,16 +357,22 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     private fun addManual() {
-        val name = EditText(this).apply { hint = "పేరు" }
-        val phone = EditText(this).apply { hint = "ఫోన్ నంబర్"; inputType = 3 }
-        val box = LinearLayout(this).apply { orientation = 1; setPadding(20,8,20,0); addView(name); addView(phone) }
+        val memberId = EditText(this).apply { hint = "ID Number / సభ్యుడి ID"; setSingleLine(true) }
+        val name = EditText(this).apply { hint = "పేరు"; setSingleLine(true) }
+        val phone = EditText(this).apply { hint = "ఫోన్ నంబర్"; inputType = 3; setSingleLine(true) }
+        val box = LinearLayout(this).apply {
+            orientation = 1; setPadding(dp(20), dp(8), dp(20), 0)
+            addView(memberId); addView(name); addView(phone)
+        }
         AlertDialog.Builder(this).setTitle("సభ్యుడిని జోడించండి").setView(box)
             .setPositiveButton("Save") { _, _ ->
+                val idNumber = memberId.text.toString().trim()
                 val n = name.text.toString().trim(); val p = phone.text.toString().trim()
+                val duplicateId = idNumber.isNotBlank() && members.any { it.memberId.equals(idNumber, ignoreCase = true) }
                 if (members.size >= memberLimit) { toast("గరిష్ఠంగా $memberLimit మంది సభ్యులనే జోడించవచ్చు") }
-                else if (n.isNotBlank() && normalize(p).isNotBlank() && members.none { normalize(it.phone) == normalize(p) }) {
-                    members.add(Member(UUID.randomUUID().toString(), n, p)); save(); refreshList()
-                } else toast("పేరు మరియు కొత్త ఫోన్ నంబర్ ఇవ్వండి")
+                else if (n.isNotBlank() && normalize(p).isNotBlank() && members.none { normalize(it.phone) == normalize(p) } && !duplicateId) {
+                    members.add(Member(UUID.randomUUID().toString(), n, p, memberId = idNumber)); save(); refreshList()
+                } else toast(if (duplicateId) "ఈ ID Number ఇప్పటికే ఉంది" else "పేరు మరియు కొత్త ఫోన్ నంబర్ ఇవ్వండి")
             }.setNegativeButton("Cancel", null).show()
     }
 
@@ -534,7 +540,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
 
     private fun shareBackup() {
         val arr = JSONArray()
-        members.forEach { arr.put(JSONObject().put("name",it.name).put("phone",it.phone).put("doneMonth",it.doneMonth)) }
+        members.forEach { arr.put(JSONObject().put("id",it.id).put("memberId",it.memberId).put("name",it.name).put("phone",it.phone).put("doneMonth",it.doneMonth)) }
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "application/json"
             putExtra(Intent.EXTRA_TEXT, arr.toString())
@@ -545,7 +551,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private fun normalize(p: String) = p.filter { it.isDigit() }.takeLast(10)
     private fun save() {
         val a = JSONArray()
-        members.forEach { a.put(JSONObject().put("id",it.id).put("name",it.name).put("phone",it.phone).put("done",it.doneMonth)) }
+        members.forEach { a.put(JSONObject().put("id",it.id).put("memberId",it.memberId).put("name",it.name).put("phone",it.phone).put("done",it.doneMonth)) }
         prefs.edit().putString("members", a.toString()).apply()
     }
     private fun load() {
@@ -553,7 +559,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             val a = JSONArray(prefs.getString("members","[]"))
             for (i in 0 until a.length()) {
                 val o = a.getJSONObject(i)
-                members.add(Member(o.optString("id", UUID.randomUUID().toString()),o.optString("name"),o.optString("phone"),o.optString("done")))
+                members.add(Member(o.optString("id", UUID.randomUUID().toString()),o.optString("name"),o.optString("phone"),o.optString("done"),o.optString("memberId"))))
             }
         } catch (_: Exception) {}
     }
