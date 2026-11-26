@@ -33,7 +33,6 @@ class CncReminderCenterActivity : Activity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         lang = getSharedPreferences("downline_data", MODE_PRIVATE).getString("language", "te") ?: "te"
-        if (lang == "en") lang = "te"
         tts = TextToSpeech(this, this)
         buildUi()
         showItem(0)
